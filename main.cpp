@@ -47,9 +47,9 @@ void Setup() {
 
 void MainMenu() {
     system("cls");
-    cout << "=================" << endl;
-    cout << "  SNAKE WORLD" << endl;
-    cout << "=================" << endl;
+    cout << "==================" << endl;
+    cout << "   BITIN BITIN" << endl;
+    cout << "==================" << endl;
     cout << "1. Start Game\n";
     cout << "2. Quit\n";
     cout << "Enter your choice: ";

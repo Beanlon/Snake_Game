@@ -1,6 +1,8 @@
 #include <iostream>
 #include <conio.h>
 #include <windows.h>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
@@ -10,23 +12,26 @@ bool isPaused;
 const int width = 20;
 const int height = 17;
 int x, y, foodX, foodY, score, level, speed;
-int tailX[100], tailY[100]; // Vectors used to store snake tail positions
+int tailX[100], tailY[100];
 int nTail;
 char foodLetter;
-string targetWord = "LINEAR_ALGEBRA";
-int letterIndex = 0;
+string targetWord;
+int letterIndex;
 
 enum eDirection { STOP = 0, LEFT, RIGHT, UP, DOWN };
 eDirection dir;
 HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
-COORD CursorPosition;
 
-// Function to initialize the game
-void Setup()
-{
+string GenerateRandomWord() {
+    string words[] = { "SNAKE", "APPLE", "HELLO", "WORLD", "GAMES" };
+    int randomIndex = rand() % (sizeof(words) / sizeof(words[0]));
+    return words[randomIndex];
+}
+
+void Setup() {
     gameOver = false;
     isPaused = false;
-    dir = STOP;
+    dir = STOP; // Ensures snake stays still at the start
     x = width / 2;
     y = height / 2;
     foodX = rand() % width;
@@ -34,107 +39,124 @@ void Setup()
     score = 0;
     level = 1;
     speed = 100;
-    foodLetter = targetWord[letterIndex];
     nTail = 0;
+    targetWord = GenerateRandomWord();
+    letterIndex = 0;
+    foodLetter = targetWord[letterIndex];
 }
 
-// Function to move cursor position
-void gotoxy(int x, int y)
-{
-    CursorPosition.X = x;
-    CursorPosition.Y = y;
-    SetConsoleCursorPosition(console, CursorPosition);
+void MainMenu() {
+    system("cls");
+    cout << "=================" << endl;
+    cout << "  SNAKE WORLD" << endl;
+    cout << "=================" << endl;
+    cout << "1. Start Game\n";
+    cout << "2. Quit\n";
+    cout << "Enter your choice: ";
+    char choice;
+    while (true) {
+        choice = _getch();
+        if (choice == '1') {
+            Setup();
+            return;
+        }
+        else if (choice == '2') {
+            exit(0);
+        }
+    }
 }
 
-// Function to draw the game board
-void Draw()
-{
-    gotoxy(0, 0);
-    cout << "Score: " << score << "  Level: " << level << "  Target: " << targetWord << "\n";
+void PauseMenu() {
+    system("cls");
+    cout << "================" << endl;
+    cout << "  GAME PAUSED" << endl;
+    cout << "================" << endl;
+    cout << "1. RESUME" << endl;
+    cout << "2. QUIT" << endl;
+    char choice;
+    while (true) {
+        choice = _getch();
+        if (choice == '1') {
+            return;
+        }
+        else if (choice == '2') {
+            exit(0);
+        }
+    }
+}
 
-    for (int i = 0; i < width + 2; i++)
-        cout << "#";
+void Retry() {
+    system("cls");
+    cout << "================" << endl;
+    cout << "   GAME OVER" << endl;
+    cout << "================" << endl;
+    cout << "" << endl;
+    cout << "Final Score : " << score << endl;
+    cout << "Reached Level : " << level << endl;
+    cout << "" << endl;
+    cout << "1. RETRY" << endl;
+    cout << "2. QUIT" << endl;
+    while (true) {
+        char choice = _getch();
+        if (choice == '1') {
+            Setup();
+            return;
+        }
+        else if (choice == '2') {
+            exit(0);
+        }
+    }
+}
+
+void Draw() {
+    COORD cursorPosition = { 0, 0 };
+    SetConsoleCursorPosition(console, cursorPosition);
+    for (int i = 0; i < width + 2; i++) cout << "#";
     cout << endl;
-
-    for (int i = 0; i < height; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            if (j == 0)
-                cout << "#";
-            if (i == y && j == x)
-                cout << "O"; // Snake head
-            else if (i == foodY && j == foodX)
-                cout << foodLetter; // Food as next letter
-            else
-            {
-                bool print = false;
-                for (int k = 0; k < nTail; k++) // Iterating through tail positions (vectors)
-                {
-                    if (tailX[k] == j && tailY[k] == i)
-                    {
-                        cout << "o"; // Snake tail
-                        print = true;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (j == 0) cout << "#";
+            if (i == y && j == x) cout << "O";
+            else if (i == foodY && j == foodX) cout << foodLetter;
+            else {
+                bool printTail = false;
+                for (int k = 0; k < nTail; k++) {
+                    if (tailX[k] == j && tailY[k] == i) {
+                        cout << "o";
+                        printTail = true;
                     }
                 }
-                if (!print)
-                    cout << " ";
+                if (!printTail) cout << " ";
             }
-            if (j == width - 1)
-                cout << "#";
+            if (j == width - 1) cout << "#";
         }
         cout << endl;
     }
-    for (int i = 0; i < width + 2; i++)
-        cout << "#";
-    cout << endl;
+    for (int i = 0; i < width + 2; i++) cout << "#";
+    cout << "\nScore: " << score << "  Level: " << level << "  Next Letter: " << foodLetter << endl;
 }
 
-// Function to handle user input
-void Input()
-{
-    if (_kbhit())
-    {
-        char currentKey = _getch();
-        if (currentKey == 'p')  // If the user presses 'p', pause the game
-        {
-            isPaused = !isPaused;
-        }
-        else if (!isPaused) // Allow movement only if the game is not paused
-        {
-            switch (currentKey)
-            {
-            case 'a':
-                if (dir != RIGHT) dir = LEFT;
-                break;
-            case 'd':
-                if (dir != LEFT) dir = RIGHT;
-                break;
-            case 'w':
-                if (dir != DOWN) dir = UP;
-                break;
-            case 's':
-                if (dir != UP) dir = DOWN;
-                break;
-            case 'x':
-                gameOver = true;
-                break;
-            }
+void Input() {
+    if (_kbhit()) {
+        switch (_getch()) {
+        case 'a': if (dir != RIGHT) dir = LEFT; break;
+        case 'd': if (dir != LEFT) dir = RIGHT; break;
+        case 'w': if (dir != DOWN) dir = UP; break;
+        case 's': if (dir != UP) dir = DOWN; break;
+        case 'p': PauseMenu(); break;
+        case 'x': gameOver = true; break;
         }
     }
 }
 
-// Function to update game logic
-void Logic()
-{
-    int prevX = tailX[0];
-    int prevY = tailY[0];
-    int prev2X, prev2Y;
+void Logic() {
+    if (dir == STOP) return; // Prevent movement if no key is pressed
+
+    int prevX = tailX[0], prevY = tailY[0], prev2X, prev2Y;
     tailX[0] = x;
     tailY[0] = y;
 
-    for (int i = 1; i < nTail; i++)
-    {
+    for (int i = 1; i < nTail; i++) {
         prev2X = tailX[i];
         prev2Y = tailY[i];
         tailX[i] = prevX;
@@ -143,161 +165,62 @@ void Logic()
         prevY = prev2Y;
     }
 
-    switch (dir)
-    {
-    case LEFT:
-        x--;
-        break;
-    case RIGHT:
-        x++;
-        break;
-    case UP:
-        y--;
-        break;
-    case DOWN:
-        y++;
-        break;
-    default:
-        break;
+    switch (dir) {
+    case LEFT: x--; break;
+    case RIGHT: x++; break;
+    case UP: y--; break;
+    case DOWN: y++; break;
     }
 
-    // Game Over if the snake hits the wall
-    if (x >= width || x < 0 || y >= height || y < 0)
-    {
-        gameOver = true;
-        return;
+    if (x >= width || x < 0 || y >= height || y < 0) gameOver = true;
+    for (int i = 0; i < nTail; i++) {
+        if (tailX[i] == x && tailY[i] == y) gameOver = true;
     }
 
-    // Game Over if the snake hits itself
-    for (int i = 0; i < nTail; i++) // Checking collision with snake tail (vectors)
-    {
-        if (tailX[i] == x && tailY[i] == y)
-        {
-            gameOver = true;
-            return;
-        }
-    }
-
-    // Eating food logic
-    if (x == foodX && y == foodY)
-    {
+    if (x == foodX && y == foodY) {
         score += 10;
+        nTail++;
         letterIndex++;
-        if (letterIndex < targetWord.length())
-        {
-            foodLetter = targetWord[letterIndex];
-            foodX = rand() % width;
-            foodY = rand() % height;
-            nTail++;
-        }
-        else
-        {
-            level++;
-            if (level > 5)
-            {
-                level = 1;
-                speed = 100;
+        if (letterIndex >= targetWord.length()) {
+            system("cls");
+            cout << "====================" << endl;
+            cout << "  CONGRATULATIONS!" << endl;
+            cout << "====================" << endl;
+            cout << "" << endl;
+            cout << "You completed the word" << endl;
+            cout << "   " << targetWord << "!\n";
+            cout << "" << endl;
+            cout << "1. NEXT LEVEL" << endl;
+            cout << "2. QUIT" << endl;
+            while (true) {
+                char choice = _getch();
+                if (choice == '1') {
+                    level++;
+                    speed -= 5;
+                    if (speed < 40) speed = 40;
+                    targetWord = GenerateRandomWord();
+                    letterIndex = 0;
+                    break;
+                }
+                else if (choice == '2') exit(0);
             }
-            letterIndex = 0;
-            foodLetter = targetWord[letterIndex];
-            foodX = rand() % width;
-            foodY = rand() % height;
-            nTail = 0;
-            speed -= 20;
         }
+        foodLetter = targetWord[letterIndex];
+        foodX = rand() % width;
+        foodY = rand() % height;
     }
 }
 
-// Function to prompt retry or exit
-void Retry()
-{
-    char choice;
-    system("cls");  // Clear the screen before retrying
-    cout << "Game Over! Final Score: " << score << "  Reached Level: " << level << endl;
-    cout << "Press 'r' to retry or 'q' to quit: ";
-    cin >> choice;
-    if (choice == 'r')
-    {
-        Setup();  // Reset the game state and start over
-        gameOver = false; // Set gameOver to false to continue playing
-    }
-    else
-    {
-        exit(0);  // Quit the game
-    }
-}
-
-// Function to show the main menu
-void MainMenu()
-{
-    char choice;
-    while (true)
-    {
-        system("cls"); // Clear the screen
-        cout << "==================" << endl;
-        cout << "    SNAKE GAME   " << endl;
-        cout << "==================" << endl;
-        cout << "1. Start Game" << endl;
-        cout << "2. Quit" << endl;
-        cout << "Choose an option: ";
-        cin >> choice;
-        if (choice == '1')
-        {
-            break;  // Start the game
-        }
-        else if (choice == '2')
-        {
-            exit(0);  // Quit the game
-        }
-    }
-}
-
-// Function to show the pause menu
-void PauseMenu()
-{
-    char choice;
-    while (isPaused)
-    {
-        system("cls");
-        cout << "=============" << endl;
-        cout << "   PAUSED   " << endl;
-        cout << "=============" << endl;
-        cout << "1. Resume" << endl;
-        cout << "2. Quit" << endl;
-        cout << "Choose an option: ";
-        cin >> choice;
-        if (choice == '1')
-        {
-            isPaused = false;
-        }
-        else if (choice == '2')
-        {
-            exit(0);
-        }
-    }
-}
-
-// Main function
-int main()
-{
-    MainMenu(); // Show main menu before starting the game
-
-    while (true)
-    {
-        Setup();  // Set up the game state
-        while (!gameOver)
-        {
+int main() {
+    srand(time(0));
+    MainMenu();
+    while (true) {
+        while (!gameOver) {
             Draw();
             Input();
             Logic();
             Sleep(speed);
-
-            if (isPaused)
-            {
-                PauseMenu(); // Show the pause menu when the game is paused
-            }
         }
-        // Once the game is over, call retry function
         Retry();
     }
     return 0;
